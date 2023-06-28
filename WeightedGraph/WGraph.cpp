@@ -1,15 +1,21 @@
 #include "WGraph.hpp"
 
 #include <stdexcept>
-#include <queue>
 #include <stack>
 #include <string>
+#include <set>
+
+std::priority_queue <Edge> pQueue;
 
 //constructor
 WGraph::WGraph()
 {
 	numNodes = 0;
+	numEdges = 0;
+	pQItems = 0;
 	nodeList = new Node * [SIZE];
+	edgeMatrix.fill({});
+	edgeList = new Edge * [SIZE * 2];
 }
 //destructor
 WGraph::~WGraph()
@@ -31,6 +37,7 @@ WGraph::~WGraph()
 		delete node;
 	}
 	delete[] nodeList;
+	delete[] edgeList;
 }
 //add a node
 void WGraph::addNode(char name)
@@ -71,18 +78,25 @@ bool WGraph::addEdge(char starts, char ends, int weight)
 	//new edges - setting connections according to the way from pseudocode
 	Edge* startEnd = new Edge;
 	startEnd->endIndex = endIndex;
+	startEnd->startIndex = startIndex;
 	startEnd->next = nodeList[startIndex]->connections.front();
 	nodeList[startIndex]->connections.front() = startEnd;
 	startEnd->weight = weight;
 
 	Edge* endStart = new Edge;
 	endStart->endIndex = startIndex;
+	endStart->startIndex = endIndex;
 	endStart->next = nodeList[endIndex]->connections.front();
 	nodeList[endIndex]->connections.front() = endStart;
 	endStart->weight = weight;
 
 	//creating an adjacency list for each node using the indexes of start and end of edges
-	nodeList[startIndex]->adjacents.push_front(nodeList[endIndex]);
+	nodeList[startIndex]->adjacents.push_back(nodeList[endIndex]);
+	nodeList[endIndex]->adjacents.push_back(nodeList[startIndex]);
+
+	//creating edgelist for mincost
+	edgeList[numEdges++] = startEnd;
+	edgeList[numEdges++] = endStart;
 	return true;
 }
 //list nodes in order added
@@ -136,7 +150,12 @@ string WGraph::displayMatrix()
 			else
 			{
 				int weight = edgeMatrix[i][j];
-				buffer += std::to_string(weight);
+				string sWeight = std::to_string(weight);
+				buffer += sWeight;
+				if (sWeight.length() == 1)
+				{
+					buffer += " ";
+				}
 				buffer += " ";
 			}
 		}
@@ -160,37 +179,34 @@ string WGraph::breadthFirst(char name)
 	}
 	que.push(ptr);
 	ptr->visited = true;
-	bool first = true;
 
 	while (!que.empty())
 	{
 		ptr = que.front();
-
 		buffer += ptr->name; //output the node name
-		if (first) //colon for first node
-		{
-			buffer += ":";
-		}
 		buffer += " ";
 		que.pop();
 
-		first = false;
-		//check for connections
-		if (!ptr->adjacents.empty())
+		std::list<Node*> adj = ptr->adjacents;
+		//sets the correct direction of adjacents for the driver
+		adj.reverse(); 
+		for (auto i : adj)
 		{
-			Node* node = nullptr;
-			for (auto i : ptr->adjacents)
+			if (!i->visited) //if not visited mark and push on queue
 			{
-				if (!i->visited) //if not visited mark and push on queue
-				{
-					i->visited = true;
-					que.push(i);
-					node = i;
-				}
+				i->visited = true;
+				que.push(i);
 			}
-			ptr = node;
 		}
 	}
+	//print nonvisited nodes
+	for (int i = 0; i < numNodes; i++) {
+		if (nodeList[i]->visited == false) {
+			buffer += "Unreached ";
+			buffer += nodeList[i]->name;
+		}
+	}
+
 	return buffer;
 }
 //traverse graph depth first
@@ -207,9 +223,9 @@ string WGraph::depthFirst(char name)
 	}
 
 	buffer += ptr->name;
-	buffer += ":";
 	buffer += " ";
 	ptr->visited = true;
+	bool check = false; //check for unvisited neighbor nodes
 
 	//using a stack to traverse in order
 	std::stack<Node*> stak;
@@ -217,29 +233,37 @@ string WGraph::depthFirst(char name)
 
 	while (!stak.empty())
 	{
-		ptr = stak.top();
-		stak.pop();
-
-		if (!ptr->visited) //add to buffer if not visited yet
+		if (!check)
 		{
-			buffer += ptr->name;
-			buffer += " ";
-			ptr->visited = true;
-		}
+			ptr = stak.top();
+			stak.pop();
 
-		//push any unvisited adjacent nodes
-		for (int i = 0; i < numNodes - 1; i++)
-		{
-			for (int j = 0; j < numNodes - 1; j++)
+			if (!ptr->visited) //add to buffer if not visited yet
 			{
-				if (!nodeList[i]->visited and edgeMatrix[i][j] != 0)
-				{
-					stak.push(nodeList[i]);
-				}
+				buffer += ptr->name;
+				buffer += " ";
+				ptr->visited = true;
 			}
-
+		}
+		bool check = false; 
+		//push any unvisited adjacent nodes
+		for (auto i: ptr->adjacents)
+		{
+			if (!i->visited)
+			{
+				stak.push(i);
+				check = true;
+			}
 		}
 	}
+
+	for (int i = 0; i < numNodes; i++) {
+		if (nodeList[i]->visited == false) {
+			buffer += "Unreached ";
+			buffer += nodeList[i]->name;
+		}
+	}
+
 	return buffer;
 }
 //linear search for node
@@ -265,3 +289,88 @@ void WGraph::resetVisited()
 		}
 	}
 }
+//minimum cost tree
+string WGraph::minCostTree(char name)
+{
+	resetVisited();
+
+	string buffer = "";
+	buffer += name;
+	buffer += ": ";
+
+	int qIndex = 0;
+	int items = 0;
+
+	Node* first = nodeList[findNode(name)];
+	first->visited = true;
+	//first->cost = 0;
+	for (int i = 0; i < numEdges; i++)
+	{
+		pQueue.push(edgeList[i]);
+		pQItems++;
+	}
+	Edge* edge = nullptr;
+	Node* current = nullptr;
+	Node* start = nullptr;
+	int smallest = 0;
+
+	while (pQItems > 0)
+	{
+		/*for (int i = 0; i < pQItems; i++) {
+			std::cout << pQueue.top()->weight << std::endl;
+		}*/
+		//currently printing 8, A-H for A tree
+		//and 14, 9, D-F, D-E for D tree
+		edge = pQueue.top();
+		int startIndex = edge->startIndex;
+		int currentIndex = edge->endIndex;
+
+		start = nodeList[startIndex];
+		current = nodeList[currentIndex];
+		
+		current->visited = true;
+
+		buffer += start->name;
+		buffer += "-";
+
+		buffer += current->name;
+		buffer += " ";
+
+		//create temp array? of adjacent weights. select the next node with the lowest 
+		//weight that hasn't been been visited
+
+		for (auto i: current->adjacents)
+		{
+			int end = edge->endIndex;
+			if (!nodeList[end]->visited)
+			{
+				pQueue.push (edge);
+			}
+			edge = edge->next;
+		}
+		pQueue.pop();
+		pQItems--;
+	}
+	resetVisited();
+	return buffer;
+}
+
+string WGraph::minCostPaths(char name)
+{
+	resetVisited();
+	string buffer = "";
+	buffer += name;
+	buffer += ": ";
+	std::set<bool> spSet;
+	for (int i = 0; i < numNodes - 1; i++)
+	{
+		spSet.insert(false);
+	}
+	std::set<int> distance;
+	for (int i = 0; i < numNodes - 1; i++)
+	{
+		distance.insert(INT_MAX);
+	}
+	return buffer;
+}
+

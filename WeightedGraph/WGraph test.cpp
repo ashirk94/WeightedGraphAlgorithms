@@ -9,8 +9,8 @@
 #include <iostream>
 #include "WGraph.hpp"
 
-//#define MIN_COST_TREE
-//#define MIN_COST_PATHS
+#define MIN_COST_TREE
+#define MIN_COST_PATHS
 
 int main()
 {
