@@ -5,17 +5,16 @@
 #include <string>
 #include <set>
 
-std::priority_queue <Edge> pQueue;
-
 //constructor
 WGraph::WGraph()
 {
 	numNodes = 0;
 	numEdges = 0;
 	pQItems = 0;
-	nodeList = new Node * [SIZE];
+	nodeList = new Node*[SIZE];
 	edgeMatrix.fill({});
-	edgeList = new Edge * [SIZE * 2];
+	edgeList = new Edge*[SIZE * 2];
+	//pQueue = new MinHeap();
 }
 //destructor
 WGraph::~WGraph()
@@ -289,7 +288,7 @@ void WGraph::resetVisited()
 		}
 	}
 }
-//minimum cost tree
+//minimum cost(spanning) tree
 string WGraph::minCostTree(char name)
 {
 	resetVisited();
@@ -306,7 +305,7 @@ string WGraph::minCostTree(char name)
 	//first->cost = 0;
 	for (int i = 0; i < numEdges; i++)
 	{
-		pQueue.push(edgeList[i]);
+		pQueue.addItem(edgeList[i]);
 		pQItems++;
 	}
 	Edge* edge = nullptr;
@@ -321,7 +320,7 @@ string WGraph::minCostTree(char name)
 		}*/
 		//currently printing 8, A-H for A tree
 		//and 14, 9, D-F, D-E for D tree
-		edge = pQueue.top();
+		edge = pQueue.getItem();
 		int startIndex = edge->startIndex;
 		int currentIndex = edge->endIndex;
 
@@ -338,17 +337,22 @@ string WGraph::minCostTree(char name)
 
 		//create temp array? of adjacent weights. select the next node with the lowest 
 		//weight that hasn't been been visited
+		Edge* temp[20];
+		int count = 0;
 
-		for (auto i: current->adjacents)
+		//get edges here not nodes
+		for (auto i: current->connections)
 		{
+			temp[count] = i;
+			count++;
+			//working on this now
 			int end = edge->endIndex;
 			if (!nodeList[end]->visited)
 			{
-				pQueue.push (edge);
+				pQueue.addItem(edge);
 			}
-			edge = edge->next;
 		}
-		pQueue.pop();
+		//pQueue.pop();
 		pQItems--;
 	}
 	resetVisited();

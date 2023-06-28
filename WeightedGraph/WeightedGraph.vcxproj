@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MinHeap.cpp" />
     <ClCompile Include="WGraph test.cpp" />
     <ClCompile Include="WGraph.cpp" />
   </ItemGroup>

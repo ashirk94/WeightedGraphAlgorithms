@@ -23,6 +23,22 @@ struct Node
 	std::list<Edge*> connections;
 	std::list<Node*> adjacents;
 };
+
+class MinHeap
+{
+private:
+	Edge** arr;
+	int capacity;
+	int count;
+
+public:
+	MinHeap(int size = 20);
+	~MinHeap();
+	void addItem(Edge* edge);
+	Edge* getItem();
+	void resize();
+};
+
 class WGraph
 {
 private:
@@ -33,7 +49,7 @@ private:
 	std::array<std::array<int, SIZE>, SIZE> edgeMatrix;
 	int findNode(char name);
 	void resetVisited();
-	std::priority_queue<Edge*> pQueue;
+	MinHeap pQueue;
 	int pQItems;
 
 public:
@@ -47,8 +63,6 @@ public:
 	string breadthFirst(char name);
 	string depthFirst(char name);
 	string minCostTree(char name);
-	Edge* removeSmallest();
-	void pQueueAdd(Edge* edge);
 	string minCostPaths(char name);
 };
 
