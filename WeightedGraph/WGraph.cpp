@@ -10,7 +10,6 @@ WGraph::WGraph()
 {
 	numNodes = 0;
 	numEdges = 0;
-	pQItems = 0;
 	nodeList = new Node*[SIZE];
 	edgeMatrix.fill({});
 	edgeList = new Edge*[SIZE * 2];
@@ -293,6 +292,8 @@ string WGraph::minCostTree(char name)
 {
 	resetVisited();
 
+	MinHeap pQueue;
+
 	string buffer = "";
 	buffer += name;
 	buffer += ": ";
@@ -302,59 +303,86 @@ string WGraph::minCostTree(char name)
 
 	Node* first = nodeList[findNode(name)];
 	first->visited = true;
-	//first->cost = 0;
-	for (int i = 0; i < numEdges; i++)
-	{
-		pQueue.addItem(edgeList[i]);
-		pQItems++;
-	}
-	Edge* edge = nullptr;
-	Node* current = nullptr;
-	Node* start = nullptr;
-	int smallest = 0;
 
-	while (pQItems > 0)
-	{
-		/*for (int i = 0; i < pQItems; i++) {
-			std::cout << pQueue.top()->weight << std::endl;
-		}*/
-		//currently printing 8, A-H for A tree
-		//and 14, 9, D-F, D-E for D tree
-		edge = pQueue.getItem();
-		int startIndex = edge->startIndex;
-		int currentIndex = edge->endIndex;
+	Node** MST = new Node*[20]; //add nodes to tree
+	int smallest = INT_MAX;
 
-		start = nodeList[startIndex];
-		current = nodeList[currentIndex];
-		
-		current->visited = true;
+	MST[0] = first;
 
-		buffer += start->name;
-		buffer += "-";
-
-		buffer += current->name;
-		buffer += " ";
-
-		//create temp array? of adjacent weights. select the next node with the lowest 
-		//weight that hasn't been been visited
-		Edge* temp[20];
-		int count = 0;
-
-		//get edges here not nodes
-		for (auto i: current->connections)
-		{
-			temp[count] = i;
-			count++;
-			//working on this now
-			int end = edge->endIndex;
-			if (!nodeList[end]->visited)
-			{
-				pQueue.addItem(edge);
-			}
+	//loop while there are unvisited nodes in adjacents
+	Edge* edge = first->connections.front();
+	Node* nextNode;
+	Edge* small = nullptr;
+	Node* smallNode = nullptr;
+	
+	while (edge != nullptr) {
+		nextNode = nodeList[edge->endIndex];
+		if (!nextNode->visited && edge->weight < smallest) {
+			smallest = edge->weight;
+			small = edge;
+			smallNode = nextNode;
 		}
-		//pQueue.pop();
-		pQItems--;
+		if (edge->next != nullptr) {
+			edge = edge->next;
+		}
+		else {
+			if (smallNode != nullptr) {
+				smallNode->visited = true;
+			}
+			if (small != nullptr) {
+				pQueue.pushItem(small);
+			}
+			edge = nullptr;
+		}
 	}
+	edge = small;
+
+	while (!pQueue.isEmpty() && edge != nullptr)
+	{
+		edge = pQueue.peekItem();
+		Node* last;
+		last = nodeList[edge->startIndex];
+		Node* node = nodeList[edge->endIndex];
+
+		buffer += last->name; //output the node name
+		buffer += "-";
+		buffer += node->name;
+		buffer += " ";
+		node->visited = true;
+
+		pQueue.popItem();
+
+		smallest = INT_MAX;
+
+		//loop while there are unvisited nodes in adjacents
+		edge = node->connections.front();
+		Node* nextNode;
+		Edge* small = nullptr;
+
+		while (edge != nullptr) {
+			nextNode = nodeList[edge->endIndex];
+			if (!nextNode->visited && edge->weight < smallest) {
+				smallest = edge->weight;
+				small = edge;
+				smallNode = nextNode;
+			}
+			if (edge->next != nullptr) {
+				edge = edge->next;
+			}
+			else {
+				if (smallNode != nullptr) {
+					smallNode->visited = true;
+				}
+				if (small != nullptr) {
+					pQueue.pushItem(small);
+				}
+				edge = nullptr;
+			} 
+		}
+		edge = small;
+		
+	}
+
 	resetVisited();
 	return buffer;
 }

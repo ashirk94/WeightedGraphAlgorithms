@@ -34,9 +34,11 @@ private:
 public:
 	MinHeap(int size = 20);
 	~MinHeap();
-	void addItem(Edge* edge);
-	Edge* getItem();
+	void pushItem(Edge* edge);
+	Edge* popItem();
+	Edge* peekItem();
 	void resize();
+	bool isEmpty();
 };
 
 class WGraph
@@ -49,8 +51,6 @@ private:
 	std::array<std::array<int, SIZE>, SIZE> edgeMatrix;
 	int findNode(char name);
 	void resetVisited();
-	MinHeap pQueue;
-	int pQItems;
 
 public:
 	WGraph();
