@@ -307,49 +307,50 @@ string WGraph::minCostTree(char name)
 	int items = 0;
 
 	Node* first = nodeList[findNode(name)];
+	int nodeIndex = findNode(name);
 
 	//add nodes to tree
 
-	std::vector<Node*> parents(numEdges, nullptr);
-	std::vector<int> nodeKeys(numEdges,INT_MAX);
-	std::vector<bool> inMST(numEdges, false);
+	std::vector<Node*> parents(numNodes - 1, nullptr);
+	std::vector<int> nodeKeys(numNodes - 1,INT_MAX);
+	std::vector<bool> inMST(numNodes - 1, false);
 
-	nodeKeys[0] = 0;
+	nodeKeys[nodeIndex] = 0;
+
 	//loop while there are unvisited nodes in adjacents
 	
 	pQueue.push(std::make_pair(first, 0));
 
 	while (!pQueue.empty())
 	{
-		items++;
-
-
 		NodeWeight currentNodePair = pQueue.top();
 		pQueue.pop();
 		Node* node = currentNodePair.first;
+		nodeIndex = findNode(node->name);
 
-		if (node->visited == true) {
+		if (inMST[nodeIndex] == true) {
 			continue;
 		}
-		node->visited = true;
-		int weight = currentNodePair.second;
-
+		inMST[nodeIndex] = true;
 
 
 		//loop while there are unvisited nodes in adjacents
 
-
 		for (auto i : node->adjacents) {
-			if (!i.first->visited && i.second < nodeKeys[items]) {
-				nodeKeys[items] = i.second;
-				pQueue.push(std::make_pair(i.first, nodeKeys[items]));
-				parents[items] = node;
+			int weight = i.second;
+			nodeIndex = findNode(i.first->name);
+			if (!inMST[nodeIndex] && nodeKeys[nodeIndex] > weight) {
+				nodeKeys[nodeIndex] = weight;
+				pQueue.push(std::make_pair(i.first, nodeKeys[nodeIndex]));
+				parents[nodeIndex] = node;
 			}
 		}		
 	}
-	for (int i = 0; i < numEdges; i++) {
+	for (int i = 1; i < parents.size(); i++) {
 		if (parents[i] == nullptr) continue;
 		buffer += parents[i]->name;
+		buffer += '-';
+		buffer += nodeList[nodeKeys[i]]->name;
 		buffer += ' ';
 	}
 
