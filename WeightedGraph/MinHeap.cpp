@@ -16,7 +16,6 @@ MinHeap::~MinHeap()
 //add new node
 void MinHeap::pushItem(Edge* edge)
 {
-	int value = edge->weight;
 	if (count >= capacity)
 	{
 		resize();
@@ -80,6 +79,7 @@ Edge* MinHeap::peekItem() {
 	if (!isEmpty()) {
 		return arr[count-1];
 	}
+	return nullptr;
 }
 
 bool MinHeap::isEmpty() {

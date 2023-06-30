@@ -4,6 +4,7 @@
 #include <array>
 #include <queue>
 
+
 using std::string;
 
 const int SIZE = 20;
@@ -18,10 +19,18 @@ struct Edge
 
 struct Node
 {
-	char name;
-	bool visited;
+	char name = '.';
+	bool visited = false;
 	std::list<Edge*> connections;
-	std::list<Node*> adjacents;
+	std::list<std::pair<Node*, int>> adjacents;
+};
+
+struct WeightComparison
+{
+	bool operator()(const Edge* lhs, const Edge* rhs) const
+	{
+		return lhs->weight < rhs->weight;
+	}
 };
 
 class MinHeap

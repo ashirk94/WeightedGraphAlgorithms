@@ -4,6 +4,11 @@
 #include <stack>
 #include <string>
 #include <set>
+#include <map>
+
+typedef std::pair<Node*, int> NodeWeight;
+typedef std::pair<Node*, Node*> NodePair;
+
 
 //constructor
 WGraph::WGraph()
@@ -13,7 +18,6 @@ WGraph::WGraph()
 	nodeList = new Node*[SIZE];
 	edgeMatrix.fill({});
 	edgeList = new Edge*[SIZE * 2];
-	//pQueue = new MinHeap();
 }
 //destructor
 WGraph::~WGraph()
@@ -89,8 +93,10 @@ bool WGraph::addEdge(char starts, char ends, int weight)
 	endStart->weight = weight;
 
 	//creating an adjacency list for each node using the indexes of start and end of edges
-	nodeList[startIndex]->adjacents.push_back(nodeList[endIndex]);
-	nodeList[endIndex]->adjacents.push_back(nodeList[startIndex]);
+	NodeWeight nw = std::make_pair(nodeList[endIndex], weight);
+	nodeList[startIndex]->adjacents.push_back(nw);
+	nw = std::make_pair(nodeList[startIndex], weight);
+	nodeList[endIndex]->adjacents.push_back(nw);
 
 	//creating edgelist for mincost
 	edgeList[numEdges++] = startEnd;
@@ -185,15 +191,15 @@ string WGraph::breadthFirst(char name)
 		buffer += " ";
 		que.pop();
 
-		std::list<Node*> adj = ptr->adjacents;
+		std::list<NodeWeight> adj = ptr->adjacents;
 		//sets the correct direction of adjacents for the driver
 		adj.reverse(); 
 		for (auto i : adj)
 		{
-			if (!i->visited) //if not visited mark and push on queue
+			if (!i.first->visited) //if not visited mark and push on queue
 			{
-				i->visited = true;
-				que.push(i);
+				i.first->visited = true;
+				que.push(i.first);
 			}
 		}
 	}
@@ -247,9 +253,9 @@ string WGraph::depthFirst(char name)
 		//push any unvisited adjacent nodes
 		for (auto i: ptr->adjacents)
 		{
-			if (!i->visited)
+			if (!i.first->visited)
 			{
-				stak.push(i);
+				stak.push(i.first);
 				check = true;
 			}
 		}
@@ -292,95 +298,59 @@ string WGraph::minCostTree(char name)
 {
 	resetVisited();
 
-	MinHeap pQueue;
+	std::priority_queue <NodeWeight, std::vector<NodeWeight>, std::greater<NodeWeight>> pQueue;
 
 	string buffer = "";
 	buffer += name;
 	buffer += ": ";
 
-	int qIndex = 0;
 	int items = 0;
 
 	Node* first = nodeList[findNode(name)];
-	first->visited = true;
 
-	Node** MST = new Node*[20]; //add nodes to tree
-	int smallest = INT_MAX;
+	//add nodes to tree
 
-	MST[0] = first;
+	std::vector<Node*> parents(numEdges, nullptr);
+	std::vector<int> nodeKeys(numEdges,INT_MAX);
+	std::vector<bool> inMST(numEdges, false);
 
+	nodeKeys[0] = 0;
 	//loop while there are unvisited nodes in adjacents
-	Edge* edge = first->connections.front();
-	Node* nextNode;
-	Edge* small = nullptr;
-	Node* smallNode = nullptr;
 	
-	while (edge != nullptr) {
-		nextNode = nodeList[edge->endIndex];
-		if (!nextNode->visited && edge->weight < smallest) {
-			smallest = edge->weight;
-			small = edge;
-			smallNode = nextNode;
-		}
-		if (edge->next != nullptr) {
-			edge = edge->next;
-		}
-		else {
-			if (smallNode != nullptr) {
-				smallNode->visited = true;
-			}
-			if (small != nullptr) {
-				pQueue.pushItem(small);
-			}
-			edge = nullptr;
-		}
-	}
-	edge = small;
+	pQueue.push(std::make_pair(first, 0));
 
-	while (!pQueue.isEmpty() && edge != nullptr)
+	while (!pQueue.empty())
 	{
-		edge = pQueue.peekItem();
-		Node* last;
-		last = nodeList[edge->startIndex];
-		Node* node = nodeList[edge->endIndex];
+		items++;
 
-		buffer += last->name; //output the node name
-		buffer += "-";
-		buffer += node->name;
-		buffer += " ";
+
+		NodeWeight currentNodePair = pQueue.top();
+		pQueue.pop();
+		Node* node = currentNodePair.first;
+
+		if (node->visited == true) {
+			continue;
+		}
 		node->visited = true;
+		int weight = currentNodePair.second;
 
-		pQueue.popItem();
 
-		smallest = INT_MAX;
 
 		//loop while there are unvisited nodes in adjacents
-		edge = node->connections.front();
-		Node* nextNode;
-		Edge* small = nullptr;
 
-		while (edge != nullptr) {
-			nextNode = nodeList[edge->endIndex];
-			if (!nextNode->visited && edge->weight < smallest) {
-				smallest = edge->weight;
-				small = edge;
-				smallNode = nextNode;
+
+		for (auto i : node->adjacents) {
+			if (!i.first->visited && i.second < nodeKeys[items]) {
+				nodeKeys[items] = i.second;
+				pQueue.push(std::make_pair(i.first, nodeKeys[items]));
+				parents[items] = node;
 			}
-			if (edge->next != nullptr) {
-				edge = edge->next;
-			}
-			else {
-				if (smallNode != nullptr) {
-					smallNode->visited = true;
-				}
-				if (small != nullptr) {
-					pQueue.pushItem(small);
-				}
-				edge = nullptr;
-			} 
-		}
-		edge = small;
-		
+		}		
+	}
+	for (int i = 0; i < numEdges; i++) {
+		if (parents[i] == nullptr) continue;
+		buffer += parents[i]->name;
+		buffer += ' ';
 	}
 
 	resetVisited();
