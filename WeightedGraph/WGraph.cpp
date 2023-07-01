@@ -6,18 +6,17 @@
 #include <set>
 #include <map>
 
-typedef std::pair<Node*, int> NodeWeight;
-typedef std::pair<Node*, Node*> NodePair;
-
+typedef std::pair<int, int> IntPair;
 
 //constructor
 WGraph::WGraph()
 {
 	numNodes = 0;
 	numEdges = 0;
-	nodeList = new Node*[SIZE];
+	nodeList = std::vector<Node*>(SIZE);
 	edgeMatrix.fill({});
-	edgeList = new Edge*[SIZE * 2];
+	edgeList = std::vector<Edge*>(SIZE * 3);
+	adjacentList = new std::list<std::pair<int, int>>[SIZE];
 }
 //destructor
 WGraph::~WGraph()
@@ -38,8 +37,8 @@ WGraph::~WGraph()
 		Node* node = nodeList[i];
 		delete node;
 	}
-	delete[] nodeList;
-	delete[] edgeList;
+	/*delete[] nodeList;
+	delete[] edgeList;*/
 }
 //add a node
 void WGraph::addNode(char name)
@@ -93,10 +92,13 @@ bool WGraph::addEdge(char starts, char ends, int weight)
 	endStart->weight = weight;
 
 	//creating an adjacency list for each node using the indexes of start and end of edges
-	NodeWeight nw = std::make_pair(nodeList[endIndex], weight);
-	nodeList[startIndex]->adjacents.push_back(nw);
-	nw = std::make_pair(nodeList[startIndex], weight);
-	nodeList[endIndex]->adjacents.push_back(nw);
+	IntPair ip = std::make_pair(endIndex, weight);
+	nodeList[startIndex]->adjacents.push_back(ip);
+	ip = std::make_pair(startIndex, weight);
+	nodeList[endIndex]->adjacents.push_back(ip);
+
+	adjacentList[startIndex].push_back(std::make_pair(endIndex, weight));
+	adjacentList[endIndex].push_back(std::make_pair(startIndex, weight));
 
 	//creating edgelist for mincost
 	edgeList[numEdges++] = startEnd;
@@ -191,15 +193,15 @@ string WGraph::breadthFirst(char name)
 		buffer += " ";
 		que.pop();
 
-		std::list<NodeWeight> adj = ptr->adjacents;
+		std::list<IntPair> adj = ptr->adjacents;
 		//sets the correct direction of adjacents for the driver
-		adj.reverse(); 
+		adj.reverse();
 		for (auto i : adj)
 		{
-			if (!i.first->visited) //if not visited mark and push on queue
+			if (!nodeList[i.first]->visited) //if not visited mark and push on queue
 			{
-				i.first->visited = true;
-				que.push(i.first);
+				nodeList[i.first]->visited = true;
+				que.push(nodeList[i.first]);
 			}
 		}
 	}
@@ -249,13 +251,13 @@ string WGraph::depthFirst(char name)
 				ptr->visited = true;
 			}
 		}
-		bool check = false; 
+		bool check = false;
 		//push any unvisited adjacent nodes
-		for (auto i: ptr->adjacents)
+		for (auto i : ptr->adjacents)
 		{
-			if (!i.first->visited)
+			if (!nodeList[i.first]->visited)
 			{
-				stak.push(i.first);
+				stak.push(nodeList[i.first]);
 				check = true;
 			}
 		}
@@ -298,63 +300,52 @@ string WGraph::minCostTree(char name)
 {
 	resetVisited();
 
-	std::priority_queue <NodeWeight, std::vector<NodeWeight>, std::greater<NodeWeight>> pQueue;
+	std::priority_queue <IntPair, std::vector<IntPair>, std::greater<IntPair>> pQueue;
 
 	string buffer = "";
 	buffer += name;
 	buffer += ": ";
 
-	int items = 0;
-
-	Node* first = nodeList[findNode(name)];
 	int nodeIndex = findNode(name);
 
-	//add nodes to tree
-
-	std::vector<Node*> parents(numNodes - 1, nullptr);
-	std::vector<int> nodeKeys(numNodes - 1,INT_MAX);
-	std::vector<bool> inMST(numNodes - 1, false);
+	std::vector<int> parents(numNodes, -1);
+	std::vector<int> nodeKeys(numNodes, INT_MAX);
+	std::vector<bool> inMST(numNodes, false);
 
 	nodeKeys[nodeIndex] = 0;
 
-	//loop while there are unvisited nodes in adjacents
-	
-	pQueue.push(std::make_pair(first, 0));
+	pQueue.push(std::make_pair(0, nodeIndex));
 
 	while (!pQueue.empty())
 	{
-		NodeWeight currentNodePair = pQueue.top();
-		pQueue.pop();
-		Node* node = currentNodePair.first;
+		IntPair currentNodePair = pQueue.top();
+		Node* node = nodeList[currentNodePair.second];
 		nodeIndex = findNode(node->name);
+		pQueue.pop();
 
 		if (inMST[nodeIndex] == true) {
 			continue;
 		}
 		inMST[nodeIndex] = true;
 
-
-		//loop while there are unvisited nodes in adjacents
-
-		for (auto i : node->adjacents) {
+		for (std::pair<int, int> i : adjacentList[nodeIndex]) {
 			int weight = i.second;
-			nodeIndex = findNode(i.first->name);
-			if (!inMST[nodeIndex] && nodeKeys[nodeIndex] > weight) {
-				nodeKeys[nodeIndex] = weight;
-				pQueue.push(std::make_pair(i.first, nodeKeys[nodeIndex]));
-				parents[nodeIndex] = node;
+			int nextIndex = i.first;
+
+			if (!inMST[nextIndex] && nodeKeys[nextIndex] > weight) {
+				nodeKeys[nextIndex] = weight;
+				pQueue.push(std::make_pair(nodeKeys[nextIndex], nextIndex));
+				parents[nextIndex] = nodeIndex;
+
+				// Append the edge to the buffer
+				buffer += nodeList[nodeIndex]->name;
+				buffer += '-';
+				buffer += nodeList[nextIndex]->name;
+				buffer += ' ';
 			}
-		}		
-	}
-	for (int i = 1; i < parents.size(); i++) {
-		if (parents[i] == nullptr) continue;
-		buffer += parents[i]->name;
-		buffer += '-';
-		buffer += nodeList[nodeKeys[i]]->name;
-		buffer += ' ';
+		}
 	}
 
-	resetVisited();
 	return buffer;
 }
 

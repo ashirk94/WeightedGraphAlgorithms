@@ -7,7 +7,7 @@
 
 using std::string;
 
-const int SIZE = 20;
+const int SIZE = 10;
 
 struct Edge
 {
@@ -22,32 +22,7 @@ struct Node
 	char name = '.';
 	bool visited = false;
 	std::list<Edge*> connections;
-	std::list<std::pair<Node*, int>> adjacents;
-};
-
-struct WeightComparison
-{
-	bool operator()(const Edge* lhs, const Edge* rhs) const
-	{
-		return lhs->weight < rhs->weight;
-	}
-};
-
-class MinHeap
-{
-private:
-	Edge** arr;
-	int capacity;
-	int count;
-
-public:
-	MinHeap(int size = 20);
-	~MinHeap();
-	void pushItem(Edge* edge);
-	Edge* popItem();
-	Edge* peekItem();
-	void resize();
-	bool isEmpty();
+	std::list<std::pair<int, int>> adjacents;
 };
 
 class WGraph
@@ -55,11 +30,12 @@ class WGraph
 private:
 	int numNodes;
 	int numEdges;
-	Node** nodeList;
-	Edge** edgeList;
+	std::vector<Node*> nodeList;
+	std::vector<Edge*> edgeList;
 	std::array<std::array<int, SIZE>, SIZE> edgeMatrix;
 	int findNode(char name);
 	void resetVisited();
+	std::list<std::pair<int, int>> *adjacentList;
 
 public:
 	WGraph();
