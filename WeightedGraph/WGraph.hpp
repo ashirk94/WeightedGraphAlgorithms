@@ -50,8 +50,8 @@ public:
 
     std::string listNodes() const {
         std::string result;
-        for (int i = 0; i < nodeList.size(); i++)
-            result += nodeList[i] + std::string(" ");
+        for (const auto& node : adjacencyList)
+            result += node.first + std::string(" ");
         return result;
     }
 
