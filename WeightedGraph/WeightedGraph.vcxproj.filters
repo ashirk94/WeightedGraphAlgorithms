@@ -15,10 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WGraph test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="WGraph.cpp">
+    <ClCompile Include="WGraph-test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
